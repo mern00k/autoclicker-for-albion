@@ -1,4 +1,4 @@
-import tkinter as tk
+import customtkinter as ctk
 from pystray import MenuItem as item
 import pystray
 from PIL import Image, ImageDraw
@@ -6,12 +6,17 @@ import threading
 import time
 import keyboard
 import sys
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 
 class UltimateClicker:
     def __init__(self, root):
         self.root = root
-        self.root.title("Кликер от мернока v5")
-        self.root.geometry("300x260")
+        self.root.title("Albion Clicker v5")
+        
+        # --- ИЗМЕНЕНА СТРОКА: Увеличили размер окна для стильного размещения элементов ---
+        self.root.geometry("380x420")
+        self.root.resizable(False, False)
         
         self.active = False 
         self.icon = None
@@ -21,25 +26,72 @@ class UltimateClicker:
         self.is_waiting_spam_key = False  # Флаг для смены клавиши спама
         self.is_waiting_toggle_key = False # Флаг для смены клавиши управления
 
-        # UI
-        self.status_label = tk.Label(root, text="Статус: ВЫКЛЮЧЕНО", font=("Arial", 12), fg="red")
-        self.status_label.pack(pady=10)
+        # =====================================================================
+        # 🔥 ПОЛНОСТЬЮ ОБНОВЛЕННЫЙ БЛОК UI (Строки 26-42 оригинального кода)
+        # =====================================================================
         
-        self.btn = tk.Button(root, text="ВКЛЮЧИТЬ ПРОСМОТР", command=self.toggle_monitor)
-        self.btn.pack(pady=5)
+        # Главный контейнер с отступами, чтобы элементы не прижимались к краям
+        main_container = ctk.CTkFrame(root, fg_color="transparent")
+        main_container.pack(fill="both", expand=True, padx=20, pady=15)
+
+        # 1. Красивая закругленная плашка для СТАТУСА
+        self.status_frame = ctk.CTkFrame(main_container, fg_color="#E74C3C", corner_radius=10, height=45)
+        self.status_frame.pack(fill="x", pady=(0, 15))
+        self.status_frame.pack_propagate(False) # Фиксируем высоту плашки
+
+        self.status_label = ctk.CTkLabel(self.status_frame, text="СТАТУС: ВЫКЛЮЧЕНО", font=("Arial", 14, "bold"), text_color="white")
+        self.status_label.pack(expand=True)
+
+        # 2. Интерактивная Главная Кнопка
+        self.btn = ctk.CTkButton(main_container, text="ВКЛЮЧИТЬ ПРОСМОТР", font=("Arial", 13, "bold"), height=40, corner_radius=8, fg_color="#3498DB", hover_color="#2980B9", command=self.toggle_monitor)
+        self.btn.pack(fill="x", pady=(0, 15))
+
+        # 3. Стильный блок «Какая кнопка нажата ➡️ Какая спамится»
+        binds_container = ctk.CTkFrame(main_container, fg_color="#2C3E50", corner_radius=10, border_width=1, border_color="#34495E")
+        binds_container.pack(fill="x", pady=(0, 15), padx=5)
         
-        self.info_spam = tk.Label(root, text=f"Спам: {self.key_spam.upper()}", font=("Arial", 9, "bold"))
+        # Левая колонка: Условие зажатия
+        left_box = ctk.CTkFrame(binds_container, fg_color="transparent")
+        left_box.pack(side="left", expand=True, fill="both", pady=10)
+        ctk.CTkLabel(left_box, text="ЕСЛИ ЗАЖАТЬ", font=("Arial", 10, "bold"), text_color="#BDC3C7").pack()
+        self.info_spam = ctk.CTkLabel(left_box, text=self.key_spam.upper(), font=("Arial", 22, "bold"), text_color="#2ECC71")
         self.info_spam.pack()
-        
-        self.info_toggle = tk.Label(root, text=f"Вкл/Выкл: {self.key_toggle.upper()}", font=("Arial", 9, "bold"))
+
+        # Разделитель-стрелочка по центру
+        ctk.CTkLabel(binds_container, text="➔", font=("Arial", 20, "bold"), text_color="#7F8C8D").pack(side="left", pady=10)
+
+        # Правая колонка: Что будет спамиться
+        right_box = ctk.CTkFrame(binds_container, fg_color="transparent")
+        right_box.pack(side="right", expand=True, fill="both", pady=10)
+        ctk.CTkLabel(right_box, text="БУДЕТ СПАМИТЬ", font=("Arial", 10, "bold"), text_color="#BDC3C7").pack()
+        self.info_toggle = ctk.CTkLabel(right_box, text=self.key_toggle.upper(), font=("Arial", 18, "bold"), text_color="#3498DB")
         self.info_toggle.pack()
+
+        # 4. Отдельная нижняя панель под горячие клавиши управления окном
+        help_panel = ctk.CTkFrame(main_container, fg_color="#212F3D", corner_radius=8)
+        help_panel.pack(fill="both", expand=True)
         
-        tk.Label(root, text="Бинды в окне:\n9: Трей | 0: Смена спама | 8: Смена key Просмотра\nEsc: Выход", fg="gray", justify="left").pack(pady=10)
+        ctk.CTkLabel(help_panel, text="Клавиши управления (Управление окном):", font=("Arial", 11, "bold"), text_color="#95A5A6", anchor="w").pack(fill="x", padx=15, pady=(8, 4))
+        
+        # Удобная и читаемая таблица биндов
+        controls = [
+            ("Клавиша [ 9 ]", "Свернуть в системный трей"),
+            ("Клавиша [ 0 ]", "Изменить кнопку спама"),
+            ("Клавиша [ 8 ]", "Изменить кнопку активации"),
+            ("Клавиша [Esc]", "Полное закрытие кликера")
+        ]
+        
+        for key_text, desc_text in controls:
+            row = ctk.CTkFrame(help_panel, fg_color="transparent")
+            row.pack(fill="x", padx=15, pady=2)
+            ctk.CTkLabel(row, text=key_text, font=("Arial", 11, "bold"), text_color="#3498DB", width=95, anchor="w").pack(side="left")
+            ctk.CTkLabel(row, text=f"—  {desc_text}", font=("Arial", 11), text_color="#BDC3C7", anchor="w").pack(side="left", fill="x")
+
+        # =====================================================================
 
         threading.Thread(target=self.main_loop, daemon=True).start()
-        threading.Thread(target=self.hotkey_listener, daemon=True).start() # Слушаем HotKey отдельно
+        threading.Thread(target=self.hotkey_listener, daemon=True).start()
         
-        # Бинды управления окном
         self.root.bind('<Escape>', lambda e: self.on_exit())
         self.root.bind('9', lambda e: self.withdraw_to_tray())
         self.root.bind('0', lambda e: self.start_binding("spam"))
@@ -49,20 +101,20 @@ class UltimateClicker:
     def start_binding(self, mode):
         """Включает режим ожидания новой клавиши"""
         self.active = False 
-        self.btn.config(text="ВКЛЮЧИТЬ ПРОСМОТР")
+        # --- ИЗМЕНЕНА СТРОКА: Заменено .config на .configure (Специфика CustomTkinter) ---
+        self.btn.configure(text="ВКЛЮЧИТЬ ПРОСМОТР")
         
         if mode == "spam":
             self.is_waiting_spam_key = True
             self.is_waiting_toggle_key = False
-            self.update_ui("ЖДУ КЛАВИШУ СПАМА...", "orange")
+            self.update_ui("ЖДУ КЛАВИШУ СПАМА...", "#86005C") # Используем красивый оранжевый HEX
         else:
             self.is_waiting_toggle_key = True
             self.is_waiting_spam_key = False
-            self.update_ui("ПЕРЕПРИВЯЗКА...", "orange")
+            self.update_ui("ПЕРЕПРИВЯЗКА...", "#86005C")
 
     def apply_key_bind(self, event):
         """Сохраняет нажатую клавишу"""
-        # Исключаем системные цифры
         if event.keysym in ['0', '8', '9', 'Escape']:
             return
 
@@ -75,17 +127,16 @@ class UltimateClicker:
             self.key_toggle = key
             self.is_waiting_toggle_key = False
 
-        self.info_spam.config(text=f"Спам: {self.key_spam.upper()}")
-        self.info_toggle.config(text=f"Вкл/Выкл: {self.key_toggle.upper()}")
-        self.update_ui("Статус: ВЫКЛЮЧЕНО", "red")
+        # --- ИЗМЕНЕНЫ СТРОКИ: Обновление текста в новых карточках биндов ---
+        self.info_spam.configure(text=self.key_spam.upper())
+        self.info_toggle.configure(text=self.key_toggle.upper())
+        self.update_ui("СТАТУС: ВЫКЛЮЧЕНО", "#E74C3C")
 
     def hotkey_listener(self):
-        """Слушает нажатие HotKey всегда (глобально)"""
         while True:
-            # Если нажата клавиша управления и мы не в режиме перебинда
             if keyboard.is_pressed(self.key_toggle) and not (self.is_waiting_spam_key or self.is_waiting_toggle_key):
                 self.toggle_monitor()
-                time.sleep(0.3) # Защита от дребезга (чтобы не переключалось 100 раз в секунду)
+                time.sleep(0.3)
             time.sleep(0.01)
 
     # --- Трей ---
@@ -116,27 +167,29 @@ class UltimateClicker:
     def toggle_monitor(self):
         self.active = not self.active
         if self.active:
-            self.root.after(0, lambda: self.btn.config(text="ВЫКЛЮЧИТЬ ПРОСМОТР"))
-            self.update_ui(f"Статус: ОЖИДАНИЕ ({self.key_spam.upper()})", "blue")
+            self.root.after(0, lambda: self.btn.configure(text="ВЫКЛЮЧИТЬ ПРОСМОТР"))
+            self.update_ui(f"СТАТУС: ОЖИДАНИЕ ({self.key_spam.upper()})", "#F88400") # Приятный синий HEX
         else:
-            self.root.after(0, lambda: self.btn.config(text="ВКЛЮЧИТЬ ПРОСМОТР"))
-            self.update_ui("Статус: ты аутист", "red")
+            self.root.after(0, lambda: self.btn.configure(text="ВКЛЮЧИТЬ ПРОСМОТР"))
+            self.update_ui("СТАТУС: ВЫКЛЮЧЕНО", "#E74C3C") # Красивый красный HEX
 
+    # --- ИЗМЕНЕНА ФУНКЦИЯ: Теперь меняется не цвет букв, а цвет фоновой плашки статуса для максимального стиля ---
     def update_ui(self, text, color):
-        self.root.after(0, lambda: self.status_label.config(text=text, fg=color))
+        self.root.after(0, lambda: self.status_frame.configure(fg_color=color))
+        self.root.after(0, lambda: self.status_label.configure(text=text))
 
     def main_loop(self):
         while True:
             if self.active and not (self.is_waiting_spam_key or self.is_waiting_toggle_key):
                 if keyboard.is_pressed(self.key_spam):
-                    self.update_ui("Статус: ЗАЛИВАЕМ!", "green")
+                    self.update_ui("СТАТУС: ЗАЛИВАЕМ!", "#2ECC71") # Яркий зеленый HEX
                     while keyboard.is_pressed(self.key_spam) and self.active:
                         keyboard.write(self.key_spam) 
                         time.sleep(0.05)
-                    self.update_ui(f"Статус: ОЖИДАНИЕ ({self.key_spam.upper()})", "blue")
+                    self.update_ui(f"СТАТУС: ОЖИДАНИЕ ({self.key_spam.upper()})", "#F88400")
             time.sleep(0.01)
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    root = ctk.CTk()
     app = UltimateClicker(root)
     root.mainloop()
