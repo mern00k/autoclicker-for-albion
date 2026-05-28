@@ -22,7 +22,7 @@ class UltimateClicker:
         self.is_waiting_toggle_key = False # Флаг для смены клавиши управления
 
         # UI
-        self.status_label = tk.Label(root, text="Статус: ты аутист", font=("Arial", 12), fg="red")
+        self.status_label = tk.Label(root, text="Статус: ВЫКЛЮЧЕНО", font=("Arial", 12), fg="red")
         self.status_label.pack(pady=10)
         
         self.btn = tk.Button(root, text="ВКЛЮЧИТЬ ПРОСМОТР", command=self.toggle_monitor)
@@ -77,7 +77,7 @@ class UltimateClicker:
 
         self.info_spam.config(text=f"Спам: {self.key_spam.upper()}")
         self.info_toggle.config(text=f"Вкл/Выкл: {self.key_toggle.upper()}")
-        self.update_ui("Статус: ты аутист", "red")
+        self.update_ui("Статус: ВЫКЛЮЧЕНО", "red")
 
     def hotkey_listener(self):
         """Слушает нажатие HotKey всегда (глобально)"""
