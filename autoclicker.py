@@ -14,7 +14,7 @@ ctk.set_default_color_theme("blue")
 class UltimateClicker:
     def __init__(self, root):
         self.root = root
-        self.v = "v4.4.3"
+        self.v = "v4.4.4"
         
         self.root.title(f"Albion Clicker {self.v}")
         
@@ -22,7 +22,7 @@ class UltimateClicker:
         self.root.resizable(False, False)
         
         self.active = False 
-        self.icon = None
+        self.create_tray_icon()
         self.binds_list = [
         {"trigger": "q", "spam": "q", "active": False}
         ]
@@ -308,35 +308,39 @@ class UltimateClicker:
         )
 
         menu = (
-        item('Прослушивание Off-On', self.toggle_monitor),
-        item('Развернуть', self.show_from_tray, default=True),
-        item('Выход', self.on_exit)
+            item('Прослушивание Off-On', self.toggle_monitor),
+            item('Развернуть', self.show_from_tray, default=True),
+            item('Выход', self.on_exit)
         )
 
         self.icon = pystray.Icon(
             "clicker",
             img.resize((64, 64), Image.Resampling.LANCZOS),
             f"Clicker {self.v}",
-            menu
+            menu,
+            visible=False
         )
-
-        self.icon.run()
+        
+        # Запускаем один раз фоновый поток для трея что бы не создавать лишних клонов в трее
+        threading.Thread(target=self.icon.run, daemon=True).start()
 
     def withdraw_to_tray(self):
-        if not self.icon or not self.icon.visible:
-            self.root.withdraw()
-            threading.Thread(target=self.create_tray_icon, daemon=True).start()
+        """Вызывается при сворачивании (через Unmap)"""
+        self.root.withdraw() # сразу убираем окно
+        self.icon.visible = True # показываем нашу иконку в трее
 
     def show_from_tray(self, icon=None, item=None):
-        if self.icon: self.icon.stop()
-        self.icon = None
-        self.root.after(0, self.root.deiconify)
+        """Вызывается при разворачивании из трея"""
+        self.icon.visible = False   # убираем из видимости иконку в трее
+        self.root.after(0, self.root.deiconify) # Показываем окно назад
 
     def on_exit(self, icon=None, item=None):
-        if self.icon: self.icon.stop()
-        self.root.destroy()
-        sys.exit()
-
+        """Полный выход"""
+        self.icon.visible = False # сразу убираем иконку в трее (что бы выглядило как моментальное выключение)
+        self.icon.stop() # только потом стопаем
+        self.root.destroy() # и уничтожаем окно из памяти
+        sys.exit() # завершаем работу процесса
+        
     def on_window_configure(self, event):
         """Отслеживает системное сворачивание окна на сворачивание (-)"""
         if event.widget == self.root:
